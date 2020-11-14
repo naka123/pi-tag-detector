@@ -24,8 +24,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     m_image_size_factor = image.cols*1./640.0;  // express relative to a 640x480 pixels camera image
 
     cv::Mat src_mat_8U1;
-    bool debug = false;
-    if (debug)
+    if (m_debug)
         m_debug_img = image.clone();
 
 // ------------ Convert image to gray scale if necessary -------------------
@@ -39,7 +38,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         src_mat_8U1 = image;
     }
 
-    if (debug)
+    if (m_debug)
     {
         cv::imshow("00 Grayscale", src_mat_8U1);
         cv::waitKey(0);
@@ -55,7 +54,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         cv::Mat closed;
         cv::morphologyEx(src_mat_8U1, closed, cv::MORPH_CLOSE, kernel);
 
-        if (debug)
+        if (m_debug)
         {
             cv::imshow("10 filtering closed", closed);
             cv::waitKey(0);
@@ -66,7 +65,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         cv::normalize(src_mat_8U1, src_mat_8U1, 0, 255, cv::NORM_MINMAX);
         src_mat_8U1.convertTo(src_mat_8U1, CV_8UC1); // convert back to unsigned int
 
-        if (debug)
+        if (m_debug)
         {
             cv::imshow("11 filtering divide", src_mat_8U1);
             cv::waitKey(0);
@@ -85,7 +84,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     }        
     cv::adaptiveThreshold(src_mat_8U1, src_mat_8U1, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 2*half_kernel_size+1, minus_c);
 
-    if (debug)
+    if (m_debug)
     {
         cv::imshow("20 Adaptive thresholding", src_mat_8U1);
         cv::waitKey(0);
@@ -95,7 +94,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     std::vector<std::vector<cv::Point> > contours;
     cv::findContours(src_mat_8U1, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 
-    if (debug)
+    if (m_debug)
     {
         cv::Mat contour_image = m_debug_img;
  
@@ -410,7 +409,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
             //rois have the same id like the points in vector "points"
             rois.push_back(cv::Rect(topleft.x,topleft.y,(int)2*side,(int)2*side));
-            if(debug) rectangle(m_debug_img, cv::Rect(topleft.x,topleft.y,(int)2*side,(int)2*side), cv::Scalar(255,255,255));
+            if(m_debug) rectangle(m_debug_img, cv::Rect(topleft.x,topleft.y,(int)2*side,(int)2*side), cv::Scalar(255,255,255));
         }
 
         //Kick ellipses in inverted order
@@ -423,7 +422,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     }
     //Fast PiTag -END-
 
-    if (debug)
+    if (m_debug)
     {
         cv::Mat ellipse_image = m_debug_img;
         for(unsigned int i = 0; i < ellipses.size(); i++)
@@ -640,7 +639,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             }
         }
 
-        if (debug)
+        if (m_debug)
         {
             //cv::Mat line_image = cv::Mat::zeros(src_mat_8U1.size(), CV_8UC3);
             cv::Mat line_image = m_debug_img.clone();
@@ -685,7 +684,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             }
         }
 
-        if (debug)
+        if (m_debug)
         {
             //cv::Mat line_image = cv::Mat::zeros(src_mat_8U1.size(), CV_8UC3);
             cv::Mat line_image = m_debug_img.clone();
@@ -1250,13 +1249,13 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                 }
             }
         }
-        if (debug)
+        if (m_debug)
         {
             cv::imshow("52 refined ellipses", refine_image);
             cv::waitKey(0);
         }
 
-        if (debug)
+        if (m_debug)
         {
             cv::Mat tag_image = image.clone();
             cv::Vec3b rgbValVec[] = {cv::Vec3b(0,0,0), cv::Vec3b(255,255,255),
@@ -1308,7 +1307,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     }
 // ------------ END --------------------------------------
         
-    if (debug)
+    if (m_debug)
     {
         cv::waitKey();
     }
