@@ -83,6 +83,7 @@ private:
 	int m_min_ellipse_size;
 	int m_max_ellipse_size;
 	int m_min_matching_lines = 4;
+	double m_cross_ratio_max_dist = 0.03;
 };
 
 } // end namespace ipa_Fiducials

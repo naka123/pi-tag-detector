@@ -658,7 +658,6 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         }
 
         // ------------ Fiducial line association --------------------------------------
-        double cross_ratio_max_dist = 0.03; //0.03
         std::vector<t_pi> final_tag_vec;
 
         for (unsigned int i = 0; i < m_ref_tag_vec.size(); i++)
@@ -683,9 +682,9 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             // Associate lines to markers based on their cross ratio
             for (unsigned int j = 0; j < m_ref_tag_vec.size(); j++)
             {
-                if (std::abs(cross_ratio_i - m_ref_tag_vec[j].cross_ration_0) < cross_ratio_max_dist)
+                if (std::abs(cross_ratio_i - m_ref_tag_vec[j].cross_ration_0) < m_cross_ratio_max_dist)
                     m_ref_tag_vec[j].fitting_image_lines_0.push_back(marker_lines[i]);
-                else if (std::abs(cross_ratio_i - m_ref_tag_vec[j].cross_ration_1) < cross_ratio_max_dist)
+                else if (std::abs(cross_ratio_i - m_ref_tag_vec[j].cross_ration_1) < m_cross_ratio_max_dist)
                     m_ref_tag_vec[j].fitting_image_lines_1.push_back(marker_lines[i]);
             }
         }
