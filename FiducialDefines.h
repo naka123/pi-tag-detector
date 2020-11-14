@@ -7,6 +7,8 @@
 #define __IPA_FIDUCIAL_DEFINES_H__
 
 #include "opencv2/core/core.hpp"
+#include "opencv2/core/core_c.h"
+#include <opencv2/imgproc/imgproc_c.h>
 
 namespace ipa_Fiducials {
 

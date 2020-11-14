@@ -30,7 +30,6 @@
 #include "ellipserefine.hpp"
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv/cv.hpp>
 #include <iostream>
 
 cv::Point2d cv::runetag::ipa_Fiducials::ellipseCenter( const cv::Matx33d& e ) {

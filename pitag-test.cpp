@@ -22,6 +22,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgcodecs/legacy/constants_c.h>
 
 #include "FiducialDefines.h"
 #include "FiducialModelPi.h"
