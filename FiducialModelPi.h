@@ -69,7 +69,7 @@ public:
 	// Class specific functions
 	//*******************************************************************************
 
-private:
+//private:
 
 	bool TagUnique(std::vector<t_pi>& tag_vec, t_pi& newTag);
 	bool AnglesValid2D(std::vector<cv::RotatedRect>& image_points);
@@ -78,7 +78,7 @@ private:
 
 	std::vector<t_pi> m_ref_tag_vec; ///< reference tags to be recognized
 	cv::Mat m_debug_img; ///< image that holds debugging output
-	bool m_use_fast_pi_tag;
+	bool m_use_fast_pi_tag = false;
 	bool m_debug = false;
 	int m_min_ellipse_size;
 	int m_max_ellipse_size;

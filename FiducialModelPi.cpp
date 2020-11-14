@@ -10,7 +10,8 @@ using namespace ipa_Fiducials;
 
 FiducialModelPi::FiducialModelPi()
 {
-                
+    m_debug = false;
+    m_use_fast_pi_tag = false;
     m_min_ellipse_size = 30;
     m_max_ellipse_size = 130;
     m_min_matching_lines = 4;
@@ -113,7 +114,6 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         
     if(m_use_fast_pi_tag)
     {
-        min_ellipse_size = 5;
         max_ellipse_aspect_ratio = 15;
     }
         
@@ -1225,7 +1225,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         cv::Sobel(input_image_smooth, gradient_x, CV_16S, 1, 0, sobel_winsize);
         cv::Sobel(input_image_smooth, gradient_y, CV_16S, 0, 1, sobel_winsize);
         
-        cv::Mat refine_image = image.clone();
+        cv::Mat refine_image = input_image_smooth.clone();
         for (unsigned int i=0; i<final_tag_vec.size(); i++)
         {
             if (final_tag_vec[i].no_matching_lines < m_min_matching_lines)
