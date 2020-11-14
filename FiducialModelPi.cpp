@@ -11,6 +11,9 @@ using namespace ipa_Fiducials;
 FiducialModelPi::FiducialModelPi()
 {
                 
+    m_min_ellipse_size = 30;
+    m_max_ellipse_size = 130;
+    m_min_matching_lines = 4;
 }
 
 FiducialModelPi::~FiducialModelPi()
@@ -105,7 +108,6 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     }
 
 // ------------ Ellipse extraction --------------------------------------
-    int min_ellipse_size = 3; // Min ellipse size at 70cm distance is 20x20 pixels
     //int min_contour_points = int(1.5 * min_ellipse_size);
     int max_ellipse_aspect_ratio = 7;
         
@@ -133,9 +135,13 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             continue;
         if (box_max > std::min(src_mat_8U1.rows, src_mat_8U1.cols)*0.2)
             continue;
-        if (box_min < 0.5*min_ellipse_size)
+        if (box_min < 0.5*m_min_ellipse_size)
             continue;
-        if (box_max < min_ellipse_size)
+        if (box_max < m_min_ellipse_size)
+            continue;
+        if (box_min > 0.5*m_max_ellipse_size)
+            continue;
+        if (box_max > m_max_ellipse_size)
             continue;
         if(box.center.x < 0 || box.center.x >= src_mat_8U1.cols || box.center.y < 0 || box.center.y >= src_mat_8U1.rows)
             continue;
@@ -1196,8 +1202,6 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
 
         // ------------ Refine ellipses ------------------------------------
-        int min_matching_lines = 4;
-        
         int sobel_winsize = 3;
         float gauss_smooth_sigma = 3.0;
         
@@ -1225,7 +1229,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         cv::Mat refine_image = image.clone();
         for (unsigned int i=0; i<final_tag_vec.size(); i++)
         {
-            if (final_tag_vec[i].no_matching_lines < min_matching_lines)
+            if (final_tag_vec[i].no_matching_lines < m_min_matching_lines)
                 continue;
             
             for (unsigned int j=0; j<final_tag_vec[i].image_points.size(); j++)
@@ -1287,7 +1291,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
         for (unsigned int i=0; i<final_tag_vec.size(); i++)
         {
-            if (final_tag_vec[i].no_matching_lines < min_matching_lines)
+            if (final_tag_vec[i].no_matching_lines < m_min_matching_lines)
                 continue;
             
             t_points tag_points;

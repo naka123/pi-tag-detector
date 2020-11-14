@@ -80,6 +80,9 @@ private:
 	cv::Mat m_debug_img; ///< image that holds debugging output
 	bool m_use_fast_pi_tag;
 	bool m_debug = false;
+	int m_min_ellipse_size;
+	int m_max_ellipse_size;
+	int m_min_matching_lines = 4;
 };
 
 } // end namespace ipa_Fiducials
