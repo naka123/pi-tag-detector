@@ -4,10 +4,23 @@ project(pitag)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 set( CMAKE_CXX_STANDARD 11 )
-list( APPEND CMAKE_CXX_FLAGS "-O3 -fpic" )
 
 find_package(OpenCV REQUIRED)
 find_package(TinyXML REQUIRED)
+
+#set ( CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
+if(CMAKE_C_COMPILER_ID MATCHES "MSVC")
+    set(MSVC_DISABLED_WARNINGS_LIST  "C4244")
+
+    string(REPLACE "C" " -wd" MSVC_DISABLED_WARNINGS_STR
+            ${MSVC_DISABLED_WARNINGS_LIST})
+
+    list( APPEND CMAKE_C_FLAGS "${MSVC_DISABLED_WARNINGS_STR}" )
+    list( APPEND CMAKE_CXX_FLAGS "${MSVC_DISABLED_WARNINGS_STR} /EHsc" )
+else()
+    list( APPEND CMAKE_CXX_FLAGS "-O3 -fpic" )
+endif()
 
 
 ###########
