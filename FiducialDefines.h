@@ -22,11 +22,12 @@ namespace ipa_Fiducials {
 	#define __DLL_LIBFIDUCIALS__ 
 	#define APIENTRY
 #else
-	#ifdef __LIBFIDUCIALS_EXPORT__
-		#define __DLL_LIBFIDUCIALS__ __declspec(dllexport)
-	#else
-		#define __DLL_LIBFIDUCIALS__ __declspec(dllimport)
-	#endif
+//	#ifdef __LIBFIDUCIALS_EXPORT__
+//		#define __DLL_LIBFIDUCIALS__ __declspec(dllexport)
+//	#else
+//		#define __DLL_LIBFIDUCIALS__ __declspec(dllimport)
+//	#endif
+#define __DLL_LIBFIDUCIALS__
 #endif
 
 /// Enum to encode the different feature types
