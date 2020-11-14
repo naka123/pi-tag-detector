@@ -1545,35 +1545,39 @@ unsigned long FiducialModelPi::LoadParameters(std::vector<FiducialPiParameters> 
         for(unsigned int i=0; i<pi_tags.size(); i++)
         {
                 t_pi ref_tag;
-                double tag_size = pi_tags[i].line_width_height;
+                double tag_width = pi_tags[i].tag_width;
+                double tag_height = pi_tags[i].tag_height;
 
                 ref_tag.parameters = pi_tags[i];
 
-                double d_line0_AB = tag_size * pi_tags[i].d_line0_AB; //AB
-                double d_line0_BD = tag_size - tag_size * pi_tags[i].d_line0_AB; //BD
-                double d_line0_AC = tag_size * pi_tags[i].d_line0_AC;//AC
-                double d_line0_CD = tag_size - tag_size * pi_tags[i].d_line0_AC;//CD
+                double d_line0_AB = pi_tags[i].d_line0_AB; //AB
+                double d_line0_BD = 1.f - pi_tags[i].d_line0_AB; //BD
+                double d_line0_AC = pi_tags[i].d_line0_AC;//AC
+                double d_line0_CD = 1.f - pi_tags[i].d_line0_AC;//CD
                 ref_tag.cross_ration_0 = (d_line0_AB/d_line0_BD)/(d_line0_AC/d_line0_CD);
 
-                double d_line1_AB = tag_size * pi_tags[i].d_line1_AB;
-                double d_line1_BD = tag_size - tag_size * pi_tags[i].d_line1_AB;
-                double d_line1_AC = tag_size * pi_tags[i].d_line1_AC;
-                double d_line1_CD = tag_size - tag_size * pi_tags[i].d_line1_AC;
+                double d_line1_AB = pi_tags[i].d_line1_AB;
+                double d_line1_BD = 1.f - pi_tags[i].d_line1_AB;
+                double d_line1_AC = pi_tags[i].d_line1_AC;
+                double d_line1_CD = 1.f - pi_tags[i].d_line1_AC;
                 ref_tag.cross_ration_1 = (d_line1_AB/d_line1_BD)/(d_line1_AC/d_line1_CD);
         
                 // Marker coordinates
-                ref_tag.marker_points.push_back(cv::Point2f(0, -0));
-                ref_tag.marker_points.push_back(cv::Point2f(float(d_line0_AB), -0));
-                ref_tag.marker_points.push_back(cv::Point2f(float(d_line0_AC), -0));
-                ref_tag.marker_points.push_back(cv::Point2f(float(tag_size), -0));
-                ref_tag.marker_points.push_back(cv::Point2f(float(tag_size), -float(d_line1_AB)));
-                ref_tag.marker_points.push_back(cv::Point2f(float(tag_size), -float(d_line1_AC)));
-                ref_tag.marker_points.push_back(cv::Point2f(float(tag_size), -float(tag_size)));
-                ref_tag.marker_points.push_back(cv::Point2f(float(d_line1_AC), -float(tag_size)));
-                ref_tag.marker_points.push_back(cv::Point2f(float(d_line1_AB), -float(tag_size)));
-                ref_tag.marker_points.push_back(cv::Point2f(0, -float(tag_size)));
-                ref_tag.marker_points.push_back(cv::Point2f(0, -float(d_line0_AC)));
-                ref_tag.marker_points.push_back(cv::Point2f(0, -float(d_line0_AB)));
+                ref_tag.marker_points.push_back(cv::Point2f(0, 0));
+                ref_tag.marker_points.push_back(cv::Point2f(float(d_line0_AB)*tag_width, 0));
+                ref_tag.marker_points.push_back(cv::Point2f(float(d_line0_AC)*tag_width, 0));
+
+                ref_tag.marker_points.push_back(cv::Point2f(float(tag_width), 0));
+                ref_tag.marker_points.push_back(cv::Point2f(float(tag_width), float(d_line1_AB)*tag_height));
+                ref_tag.marker_points.push_back(cv::Point2f(float(tag_width), float(d_line1_AC)*tag_height));
+
+                ref_tag.marker_points.push_back(cv::Point2f(float(tag_width), float(tag_height)));
+                ref_tag.marker_points.push_back(cv::Point2f(float(d_line1_AC)*tag_width, float(tag_height)));
+                ref_tag.marker_points.push_back(cv::Point2f(float(d_line1_AB)*tag_width, float(tag_height)));
+
+                ref_tag.marker_points.push_back(cv::Point2f(0, float(tag_height)));
+                ref_tag.marker_points.push_back(cv::Point2f(0, float(d_line0_AC)*tag_height));
+                ref_tag.marker_points.push_back(cv::Point2f(0, float(d_line0_AB)*tag_height));
 
                 // Offset
                 for(unsigned int j=0; j<ref_tag.marker_points.size(); j++)
@@ -1706,28 +1710,52 @@ unsigned long FiducialModelPi::LoadParameters(std::string directory_and_filename
 
 
 //************************************************************************************
-//        BEGIN FiducialDetector->PI->LineWidthHeight
+//        BEGIN FiducialDetector->PI->TagWidth
 //************************************************************************************
                                 // Subtag element "ObjectDetectorParameters" of Xml Inifile
                                 p_xmlElement_Child = NULL;
-                                p_xmlElement_Child = p_xmlElement_Root_FI->FirstChildElement( "LineWidthHeight" );
+                                p_xmlElement_Child = p_xmlElement_Root_FI->FirstChildElement( "TagWidth" );
 
                                 if ( p_xmlElement_Child )
                                 {
                                         // read and save value of attribute
-                                        if ( p_xmlElement_Child->QueryValueAttribute( "value", &pi_parameters.line_width_height) != TIXML_SUCCESS)
+                                        if ( p_xmlElement_Child->QueryValueAttribute( "value", &pi_parameters.tag_width) != TIXML_SUCCESS)
                                         {
                                                 std::cerr << "ERROR - FiducialModelPi::LoadParameters:" << std::endl;
-                                                std::cerr << "\t ... Can't find attribute 'value' of tag 'LineWidthHeight'" << std::endl;
+                                                std::cerr << "\t ... Can't find attribute 'value' of tag 'TagWidth'" << std::endl;
                                                 return RET_FAILED;
                                         }
                                 }
                                 else
                                 {
                                         std::cerr << "ERROR - FiducialModelPi::LoadParameters:" << std::endl;
-                                        std::cerr << "\t ... Can't find tag 'LineWidthHeight'" << std::endl;
+                                        std::cerr << "\t ... Can't find tag 'TagWidth'" << std::endl;
                                         return RET_FAILED;
                                 }
+
+//************************************************************************************
+//        BEGIN FiducialDetector->PI->TagHeight
+//************************************************************************************
+                            // Subtag element "ObjectDetectorParameters" of Xml Inifile
+                            p_xmlElement_Child = NULL;
+                            p_xmlElement_Child = p_xmlElement_Root_FI->FirstChildElement( "TagHeight" );
+
+                            if ( p_xmlElement_Child )
+                            {
+                                // read and save value of attribute
+                                if ( p_xmlElement_Child->QueryValueAttribute( "value", &pi_parameters.tag_height) != TIXML_SUCCESS)
+                                {
+                                    std::cerr << "ERROR - FiducialModelPi::LoadParameters:" << std::endl;
+                                    std::cerr << "\t ... Can't find attribute 'value' of tag 'TagHeight'" << std::endl;
+                                    return RET_FAILED;
+                                }
+                            }
+                            else
+                            {
+                                std::cerr << "ERROR - FiducialModelPi::LoadParameters:" << std::endl;
+                                std::cerr << "\t ... Can't find tag 'TagWidth'" << std::endl;
+                                return RET_FAILED;
+                            }
 
 //************************************************************************************
 //        BEGIN FiducialDetector->PI->CrossRatioLine0

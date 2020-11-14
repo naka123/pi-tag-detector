@@ -12,7 +12,8 @@ namespace ipa_Fiducials
 class __DLL_LIBFIDUCIALS__ FiducialPiParameters : public AbstractFiducialParameters
 {
 public:
-	double line_width_height; ///< Common width and height of fiducial
+	double tag_width;
+	double tag_height;
 
 	// Assert that cross_ratio(line0) > cross_ratio(line1)
 	double d_line0_AB; ///< Distance of from A to B of 4pt line A-B-C-D
