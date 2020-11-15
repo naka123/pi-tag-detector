@@ -7,6 +7,8 @@
 
 using namespace ipa_Fiducials;
 
+const float NaN = std::numeric_limits<float>::quiet_NaN();
+
 
 FiducialModelPi::FiducialModelPi()
 {
@@ -803,6 +805,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                     t_pi tag;
                     tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
+                    for (auto &im_point: tag.image_points) im_point.center = {NaN, NaN};
 
                     tag.image_points[0] = ref_tag.fitting_image_lines_0[idx1][0];
                     tag.image_points[1] = ref_tag.fitting_image_lines_0[idx1][1];
@@ -902,6 +905,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                     t_pi tag;
                     tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
+                    for (auto &im_point: tag.image_points) im_point.center = {NaN, NaN};
                     tag.image_points[6] = ref_tag.fitting_image_lines_1[idx1][0];
                     tag.image_points[7] = ref_tag.fitting_image_lines_1[idx1][1];
                     tag.image_points[8] = ref_tag.fitting_image_lines_1[idx1][2];
@@ -993,11 +997,13 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                     t_pi tag;
                     tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
+                    for (auto &im_point: tag.image_points) im_point.center = {NaN, NaN};
 
                     if (sign_c0 > 0)
                     {
                         // Lower left cornerfinal_tag_vec
                         tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
+                        for (auto &im_point: tag.image_points) im_point.center = {NaN, NaN};
 
                         tag.image_points[9] = ref_tag.fitting_image_lines_0[j][0];
                         tag.image_points[10] = ref_tag.fitting_image_lines_0[j][1];
@@ -1099,6 +1105,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     {
                         // Upper right corner
                         tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
+                        for (auto &im_point: tag.image_points) im_point.center = {NaN, NaN};
 
                         tag.image_points[0] = ref_tag.fitting_image_lines_0[j][3];
                         tag.image_points[1] = ref_tag.fitting_image_lines_0[j][2];
@@ -1331,7 +1338,7 @@ unsigned long FiducialModelPi::GetPose(cv::Mat& image, std::vector<t_pose>& vec_
     {
         int nPoints = 0;
         for (const auto & image_point : vec_point.image_points)
-            if (image_point.x != 0)
+            if (!std::isnan(image_point.x))
                 nPoints++;
 
         cv::Mat pattern_coords(nPoints, 3, CV_32F);
@@ -1342,7 +1349,7 @@ unsigned long FiducialModelPi::GetPose(cv::Mat& image, std::vector<t_pose>& vec_
         int idx = 0;
         for (unsigned int j=0; j<vec_point.image_points.size(); j++)
         {
-            if (vec_point.image_points[j].x != 0)
+            if (!std::isnan(vec_point.image_points[j].x))
             {
                 p_pattern_coords = pattern_coords.ptr<float>(idx);
                 p_pattern_coords[0] = vec_point.marker_points[j].x;
