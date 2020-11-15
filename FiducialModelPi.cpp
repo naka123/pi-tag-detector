@@ -118,14 +118,14 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     }
         
     std::vector<cv::RotatedRect> ellipses;
-    for(size_t i = 0; i < contours.size(); i++)
+    for(auto & contour : contours)
     {
-        size_t count = contours[i].size();
+        size_t count = contour.size();
         if( count < 6 )
             continue;
 
         cv::Mat pointsf;
-        cv::Mat(contours[i]).convertTo(pointsf, CV_32F);
+        cv::Mat(contour).convertTo(pointsf, CV_32F);
         cv::RotatedRect box = cv::fitEllipse(pointsf);
 
         // Plausibility checks
@@ -169,14 +169,14 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         else
         {
             // Check for double borders on circles and keep only larger ones
-            for(unsigned int i = 0; i < ellipses.size(); i++)
+            for(auto & ellipse : ellipses)
             {
                 double dist_thresh = box_min*0.1;
-                double dist = std::abs(box.center.x - ellipses[i].center.x) + std::abs(box.center.y - ellipses[i].center.y);
+                double dist = std::abs(box.center.x - ellipse.center.x) + std::abs(box.center.y - ellipse.center.y);
                 if (dist < dist_thresh)
                 {
                     add_ellipse = false;
-                    ellipses[i] = box;
+                    ellipse = box;
                     break;
                 }
             }
@@ -208,7 +208,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
 
         //ellipse density voting
-        for(size_t i = 0; i < ellipses.size(); i++)
+        for(auto & ellipse : ellipses)
         {
             unsigned int votingsize = (int)std::min(src_mat_8U1.rows,src_mat_8U1.cols)*0.005;
             unsigned int vr_x = votingsize;
@@ -217,8 +217,8 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             for(int k = -(int)vr_x/2; k < (int)vr_x/2; k++){
                 for(int l = -(int)vr_y/2; l < (int)vr_y/2; l++){
 
-                    int x = ellipses[i].center.x+l;
-                    int y = ellipses[i].center.y+k;
+                    int x = ellipse.center.x+l;
+                    int y = ellipse.center.y+k;
 
                     //Border Overshoot
                     if(x >= src_mat_8U1.cols || x < 0)
@@ -314,14 +314,14 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         }
 
         //choose size of ROI
-        for(size_t i = 0; i < points.size(); i++){
+        for(auto & point : points){
 
             //Find ellipse with smallest distance to point[i]
             unsigned int id = 0;
-            double min_dist = cv::sqrt((points[i].x-ellipses[id].center.x)*(points[i].x-ellipses[id].center.x)+(points[i].y-ellipses[id].center.y)*(points[i].y-ellipses[id].center.y));
+            double min_dist = cv::sqrt((point.x-ellipses[id].center.x)*(point.x-ellipses[id].center.x)+(point.y-ellipses[id].center.y)*(point.y-ellipses[id].center.y));
             for(size_t j = 1; j < ellipses.size(); j++){
 
-                double dist = cv::sqrt((points[i].x-ellipses[j].center.x)*(points[i].x-ellipses[j].center.x)+(points[i].y-ellipses[j].center.y)*(points[i].y-ellipses[j].center.y));
+                double dist = cv::sqrt((point.x-ellipses[j].center.x)*(point.x-ellipses[j].center.x)+(point.y-ellipses[j].center.y)*(point.y-ellipses[j].center.y));
                 if(dist < min_dist){
                     min_dist = dist;
                     id = j;
@@ -332,8 +332,8 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             int side = (int)std::max(src_mat_8U1.cols,src_mat_8U1.rows)*0.2;
 
             cv::Point2i topleft;
-            topleft.x = points[i].x - side;
-            topleft.y = points[i].y - side;
+            topleft.x = point.x - side;
+            topleft.y = point.y - side;
 
             //keep image borders
             if(topleft.x + 2*side >= src_mat_8U1.cols) topleft.x = src_mat_8U1.cols - 2*side;
@@ -358,19 +358,19 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             while(ellipses_roi.size() > max_ellipses_roi){
 
                 ellipses_roi_tmp.clear();
-                for(size_t m = 0; m < ellipses_roi.size(); m++){
-                    if(topleft.x < ellipses_roi[m].center.x &&
-                            ellipses_roi[m].center.x < topleft.x + 2*side &&
-                            topleft.y < ellipses_roi[m].center.y &&
-                            ellipses_roi[m].center.y < topleft.y + 2*side){
+                for(auto & roi : ellipses_roi){
+                    if(topleft.x < roi.center.x &&
+                       roi.center.x < topleft.x + 2 * side &&
+                       topleft.y < roi.center.y &&
+                       roi.center.y < topleft.y + 2 * side){
 
-                        ellipses_roi_tmp.push_back(ellipses_roi[m]);
+                        ellipses_roi_tmp.push_back(roi);
                     }
                 }
 
                 ellipses_roi.clear();
-                for(size_t a = 0; a < ellipses_roi_tmp.size(); a++)
-                    ellipses_roi.push_back(ellipses_roi_tmp[a]);
+                for(const auto & roi_tmp : ellipses_roi_tmp)
+                    ellipses_roi.push_back(roi_tmp);
 
                 topleft.x += stepsize;
                 topleft.y += stepsize;
@@ -388,13 +388,13 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                 ellipses_roi_tmp.clear();
 
-                for(size_t m = 0; m < ellipses_roi.size(); m++){
-                    if(topleft.x < ellipses_roi[m].center.x &&
-                            ellipses_roi[m].center.x < topleft.x + 2*side &&
-                            topleft.y < ellipses_roi[m].center.y &&
-                            ellipses_roi[m].center.y < topleft.y + 2*side){
+                for(auto & roi : ellipses_roi){
+                    if(topleft.x < roi.center.x &&
+                       roi.center.x < topleft.x + 2 * side &&
+                       topleft.y < roi.center.y &&
+                       roi.center.y < topleft.y + 2 * side){
 
-                        ellipses_roi_tmp.push_back(ellipses_roi[m]);
+                        ellipses_roi_tmp.push_back(roi);
                     }
                 }
 
@@ -407,14 +407,14 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                 }
 
                 ellipses_roi.clear();
-                for(size_t a = 0; a < ellipses_roi_tmp.size(); a++)
-                    ellipses_roi.push_back(ellipses_roi_tmp[a]);
+                for(const auto & roi_tmp : ellipses_roi_tmp)
+                    ellipses_roi.push_back(roi_tmp);
 
 
             }
 
             //rois have the same id like the points in vector "points"
-            rois.push_back(cv::Rect(topleft.x,topleft.y,(int)2*side,(int)2*side));
+            rois.emplace_back(topleft.x,topleft.y,(int)2*side,(int)2*side);
             if(m_debug) rectangle(m_debug_img, cv::Rect(topleft.x,topleft.y,(int)2*side,(int)2*side), cv::Scalar(255,255,255));
         }
 
@@ -431,10 +431,10 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     if (m_debug)
     {
         cv::Mat ellipse_image = m_debug_img;
-        for(unsigned int i = 0; i < ellipses.size(); i++)
+        for(auto & ellipse : ellipses)
         {
-            cv::ellipse(ellipse_image, ellipses[i], cv::Scalar(0,255,0), 1, CV_AA);
-            cv::ellipse(ellipse_image, ellipses[i].center, ellipses[i].size*0.5f, ellipses[i].angle, 0, 360, cv::Scalar(0,255,255), 1, CV_AA);
+            cv::ellipse(ellipse_image, ellipse, cv::Scalar(0, 255, 0), 1, CV_AA);
+            cv::ellipse(ellipse_image, ellipse.center, ellipse.size * 0.5f, ellipse.angle, 0, 360, cv::Scalar(0, 255, 255), 1, CV_AA);
         }
 
         //Fast Pi Tag
@@ -449,14 +449,14 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             }
 
             //draw points
-            for(size_t i = 0; i < points.size();i++)
+            for(auto & point : points)
             {
-                ellipsedensity_img.at<unsigned char> (points[i].y,points[i].x) = 255;
+                ellipsedensity_img.at<unsigned char> (point.y,point.x) = 255;
             }
 
             //draw rois
-            for(size_t i = 0; i < rois.size();i++){
-                cv::imshow("Roi:", m_debug_img(rois[i]));
+            for(auto & roi : rois){
+                cv::imshow("Roi:", m_debug_img(roi));
             }
 
             for(int i =0; i < ellipsevoting.rows;i++)
@@ -490,15 +490,15 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         if(m_use_fast_pi_tag){
             ellipses.clear();
             //prepare ellipse cloud for marker detection
-            for(size_t m = 0; m < ellipses_copy.size(); m++){
-                if(rois[n].x < ellipses_copy[m].center.x &&
-                        ellipses_copy[m].center.x < rois[n].x + rois[n].width &&
-                        rois[n].y < ellipses_copy[m].center.y &&
-                        ellipses_copy[m].center.y < rois[n].y + rois[n].height ){
+            for(auto & el_copy : ellipses_copy){
+                if(rois[n].x < el_copy.center.x &&
+                   el_copy.center.x < rois[n].x + rois[n].width &&
+                   rois[n].y < el_copy.center.y &&
+                   el_copy.center.y < rois[n].y + rois[n].height ){
                     //ellipses size is 10*smaller than roi
                     double factor = 0.05;
-                    if((int)ellipses_copy[m].size.width*ellipses_copy[m].size.height < (int)rois[n].width*rois[n].height*factor){
-                        ellipses.push_back(ellipses_copy[m]);
+                    if((int)el_copy.size.width * el_copy.size.height < (int)rois[n].width * rois[n].height * factor){
+                        ellipses.push_back(el_copy);
                     }
                 }
             }
@@ -512,16 +512,17 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         // Compute area
         std::vector<double> ref_A;
         std::vector<double> ref_Ratio;
-        for(unsigned int i = 0; i < ellipses.size(); i++)
-            ref_A.push_back(std::max(ellipses[i].size.width, ellipses[i].size.height));
+        ref_A.reserve(ellipses.size());
+        for(auto & ellipse : ellipses)
+            ref_A.push_back(std::max(ellipse.size.width, ellipse.size.height));
             
         //FPITAG
         if(m_use_fast_pi_tag)
         {
-            for(unsigned int i = 0; i < ellipses.size(); i++)
+            for(auto & ellipse : ellipses)
             {
-                double ellipse_aspect_ratio = ellipses[i].size.height/ellipses[i].size.width;
-                if(ellipses[i].size.height > ellipses[i].size.width) ellipse_aspect_ratio = 1/ellipse_aspect_ratio;
+                double ellipse_aspect_ratio = ellipse.size.height/ellipse.size.width;
+                if(ellipse.size.height > ellipse.size.width) ellipse_aspect_ratio = 1/ellipse_aspect_ratio;
                 ref_Ratio.push_back(ellipse_aspect_ratio);
             }
         }
@@ -649,9 +650,9 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         {
             //cv::Mat line_image = cv::Mat::zeros(src_mat_8U1.size(), CV_8UC3);
             cv::Mat line_image = m_debug_img.clone();
-            for(unsigned int i = 0; i < marker_lines.size(); i++)
+            for(auto & marker_line : marker_lines)
             {
-                cv::line(line_image, marker_lines[i][0].center, marker_lines[i][3].center, cv::Scalar(0, 255, 255), 1, 8);
+                cv::line(line_image, marker_line[0].center, marker_line[3].center, cv::Scalar(0, 255, 255), 1, 8);
             }
             cv::imshow("50 Lines", line_image);
             cv::waitKey(0);
@@ -660,19 +661,19 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         // ------------ Fiducial line association --------------------------------------
         std::vector<t_pi> final_tag_vec;
 
-        for (unsigned int i = 0; i < m_ref_tag_vec.size(); i++)
+        for (auto & ref_tag : m_ref_tag_vec)
         {
-            m_ref_tag_vec[i].fitting_image_lines_0.clear();
-            m_ref_tag_vec[i].fitting_image_lines_1.clear();
+            ref_tag.fitting_image_lines_0.clear();
+            ref_tag.fitting_image_lines_1.clear();
         }
 
-        for(unsigned int i = 0; i < marker_lines.size(); i++)
+        for(auto & marker_line : marker_lines)
         {
             // Cross ratio i
-            cv::Point2f i_AB = marker_lines[i][1].center - marker_lines[i][0].center;
-            cv::Point2f i_BD = marker_lines[i][3].center - marker_lines[i][1].center;
-            cv::Point2f i_AC = marker_lines[i][2].center - marker_lines[i][0].center;
-            cv::Point2f i_CD = marker_lines[i][3].center - marker_lines[i][2].center;
+            cv::Point2f i_AB = marker_line[1].center - marker_line[0].center;
+            cv::Point2f i_BD = marker_line[3].center - marker_line[1].center;
+            cv::Point2f i_AC = marker_line[2].center - marker_line[0].center;
+            cv::Point2f i_CD = marker_line[3].center - marker_line[2].center;
             double l_AB = std::sqrt(i_AB.x*i_AB.x + i_AB.y*i_AB.y);
             double l_BD = std::sqrt(i_BD.x*i_BD.x + i_BD.y*i_BD.y);
             double l_AC = std::sqrt(i_AC.x*i_AC.x + i_AC.y*i_AC.y);
@@ -680,12 +681,12 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             double cross_ratio_i = (l_AB/l_BD)/(l_AC/l_CD);
 
             // Associate lines to markers based on their cross ratio
-            for (unsigned int j = 0; j < m_ref_tag_vec.size(); j++)
+            for (auto & ref_tag : m_ref_tag_vec)
             {
-                if (std::abs(cross_ratio_i - m_ref_tag_vec[j].cross_ration_0) < m_cross_ratio_max_dist)
-                    m_ref_tag_vec[j].fitting_image_lines_0.push_back(marker_lines[i]);
-                else if (std::abs(cross_ratio_i - m_ref_tag_vec[j].cross_ration_1) < m_cross_ratio_max_dist)
-                    m_ref_tag_vec[j].fitting_image_lines_1.push_back(marker_lines[i]);
+                if (std::abs(cross_ratio_i - ref_tag.cross_ration_0) < m_cross_ratio_max_dist)
+                    ref_tag.fitting_image_lines_0.push_back(marker_line);
+                else if (std::abs(cross_ratio_i - ref_tag.cross_ration_1) < m_cross_ratio_max_dist)
+                    ref_tag.fitting_image_lines_1.push_back(marker_line);
             }
         }
 
@@ -693,15 +694,15 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         {
             //cv::Mat line_image = cv::Mat::zeros(src_mat_8U1.size(), CV_8UC3);
             cv::Mat line_image = m_debug_img.clone();
-            for (unsigned int j = 0; j < m_ref_tag_vec.size(); j++)
+            for (auto & ref_tag : m_ref_tag_vec)
             {
-                for(unsigned int i = 0; i < m_ref_tag_vec[j].fitting_image_lines_0.size(); i++)
+                for(auto & line0 : ref_tag.fitting_image_lines_0)
                 {
-                    cv::line(line_image, m_ref_tag_vec[j].fitting_image_lines_0[i][0].center, m_ref_tag_vec[j].fitting_image_lines_0[i][3].center, cv::Scalar(255, 255, 0), 1, 8);
+                    cv::line(line_image, line0[0].center, line0[3].center, cv::Scalar(255, 255, 0), 1, 8);
                 }
-                for(unsigned int i = 0; i < m_ref_tag_vec[j].fitting_image_lines_1.size(); i++)
+                for(auto & line1 : ref_tag.fitting_image_lines_1)
                 {
-                    cv::line(line_image, m_ref_tag_vec[j].fitting_image_lines_1[i][0].center, m_ref_tag_vec[j].fitting_image_lines_1[i][3].center, cv::Scalar(255, 0, 255), 1, 8);
+                    cv::line(line_image, line1[0].center, line1[3].center, cv::Scalar(255, 0, 255), 1, 8);
                 }
             }
             cv::imshow("51 Valid Lines", line_image);
@@ -709,43 +710,43 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         }
 
         // Search for all tag types independently
-        for(unsigned int i = 0; i < m_ref_tag_vec.size(); i++)
+        for(auto & ref_tag : m_ref_tag_vec)
         {
             std::vector<t_pi> ul_tag_vec;
             std::vector<t_pi> lr_tag_vec;
 
             // Take into account that multi associations from one line to many others may occure
             std::vector<std::vector<int> >ul_idx_lines_0(
-                    m_ref_tag_vec[i].fitting_image_lines_0.size(), std::vector<int>());
+                    ref_tag.fitting_image_lines_0.size(), std::vector<int>());
             std::vector<std::vector<int> >lr_idx_lines_1(
-                    m_ref_tag_vec[i].fitting_image_lines_1.size(), std::vector<int>());
+                    ref_tag.fitting_image_lines_1.size(), std::vector<int>());
 
             // -----------------------UPPER LEFT ------------------------------------------------------
             // Check for a common upper left corner
             // cross_ratio = largest
-            for(unsigned int j = 0; j < m_ref_tag_vec[i].fitting_image_lines_0.size(); j++)
+            for(unsigned int j = 0; j < ref_tag.fitting_image_lines_0.size(); j++)
             {
-                for(unsigned int k = j+1; k < m_ref_tag_vec[i].fitting_image_lines_0.size(); k++)
+                for(unsigned int k = j+1; k < ref_tag.fitting_image_lines_0.size(); k++)
                 {
                     bool corners_are_matching = false;
                     bool reorder_j = false;
                     bool reorder_k = false;
-                    if (m_ref_tag_vec[i].fitting_image_lines_0[j][0].center == m_ref_tag_vec[i].fitting_image_lines_0[k][0].center)
+                    if (ref_tag.fitting_image_lines_0[j][0].center == ref_tag.fitting_image_lines_0[k][0].center)
                     {
                         corners_are_matching = true;
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_0[j][3].center == m_ref_tag_vec[i].fitting_image_lines_0[k][0].center)
+                    else if (ref_tag.fitting_image_lines_0[j][3].center == ref_tag.fitting_image_lines_0[k][0].center)
                     {
                         corners_are_matching = true;
                         reorder_j = true;
 
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_0[j][0].center == m_ref_tag_vec[i].fitting_image_lines_0[k][3].center)
+                    else if (ref_tag.fitting_image_lines_0[j][0].center == ref_tag.fitting_image_lines_0[k][3].center)
                     {
                         corners_are_matching = true;
                         reorder_k = true;
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_0[j][3].center == m_ref_tag_vec[i].fitting_image_lines_0[k][3].center)
+                    else if (ref_tag.fitting_image_lines_0[j][3].center == ref_tag.fitting_image_lines_0[k][3].center)
                     {
                         corners_are_matching = true;
                         reorder_j = true;
@@ -758,27 +759,27 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     // Index 0 should corresponds to the common corner
                     if (reorder_j)
                     {
-                        cv::RotatedRect tmp = m_ref_tag_vec[i].fitting_image_lines_0[j][3];
-                        m_ref_tag_vec[i].fitting_image_lines_0[j][3] = m_ref_tag_vec[i].fitting_image_lines_0[j][0];
-                        m_ref_tag_vec[i].fitting_image_lines_0[j][0] = tmp;
-                        tmp = m_ref_tag_vec[i].fitting_image_lines_0[j][2];
-                        m_ref_tag_vec[i].fitting_image_lines_0[j][2] = m_ref_tag_vec[i].fitting_image_lines_0[j][1];
-                        m_ref_tag_vec[i].fitting_image_lines_0[j][1] = tmp;
+                        cv::RotatedRect tmp = ref_tag.fitting_image_lines_0[j][3];
+                        ref_tag.fitting_image_lines_0[j][3] = ref_tag.fitting_image_lines_0[j][0];
+                        ref_tag.fitting_image_lines_0[j][0] = tmp;
+                        tmp = ref_tag.fitting_image_lines_0[j][2];
+                        ref_tag.fitting_image_lines_0[j][2] = ref_tag.fitting_image_lines_0[j][1];
+                        ref_tag.fitting_image_lines_0[j][1] = tmp;
                     }
                     if (reorder_k)
                     {
-                        cv::RotatedRect tmp = m_ref_tag_vec[i].fitting_image_lines_0[k][3];
-                        m_ref_tag_vec[i].fitting_image_lines_0[k][3] = m_ref_tag_vec[i].fitting_image_lines_0[k][0];
-                        m_ref_tag_vec[i].fitting_image_lines_0[k][0] = tmp;
-                        tmp = m_ref_tag_vec[i].fitting_image_lines_0[k][2];
-                        m_ref_tag_vec[i].fitting_image_lines_0[k][2] = m_ref_tag_vec[i].fitting_image_lines_0[k][1];
-                        m_ref_tag_vec[i].fitting_image_lines_0[k][1] = tmp;
+                        cv::RotatedRect tmp = ref_tag.fitting_image_lines_0[k][3];
+                        ref_tag.fitting_image_lines_0[k][3] = ref_tag.fitting_image_lines_0[k][0];
+                        ref_tag.fitting_image_lines_0[k][0] = tmp;
+                        tmp = ref_tag.fitting_image_lines_0[k][2];
+                        ref_tag.fitting_image_lines_0[k][2] = ref_tag.fitting_image_lines_0[k][1];
+                        ref_tag.fitting_image_lines_0[k][1] = tmp;
                     }
 
                     // Compute angular ordering (clockwise)
-                    cv::Point2f tag_corner0 = m_ref_tag_vec[i].fitting_image_lines_0[j][3].center;
-                    cv::Point2f tag_corner1 = m_ref_tag_vec[i].fitting_image_lines_0[k][3].center;
-                    cv::Point2f tag_cornerUL = m_ref_tag_vec[i].fitting_image_lines_0[j][0].center;
+                    cv::Point2f tag_corner0 = ref_tag.fitting_image_lines_0[j][3].center;
+                    cv::Point2f tag_corner1 = ref_tag.fitting_image_lines_0[k][3].center;
+                    cv::Point2f tag_cornerUL = ref_tag.fitting_image_lines_0[j][0].center;
                     cv::Point2f tag_center = tag_corner1 + 0.5 * (tag_corner0 - tag_corner1);
 
                     cv::Point2f vec_center_cUL = tag_cornerUL - tag_center;
@@ -798,18 +799,18 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     {
                         idx0 = k;
                         idx1 = j;
-                    }        
+                    }
 
                     t_pi tag;
                     tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
-                    tag.image_points[0] = m_ref_tag_vec[i].fitting_image_lines_0[idx1][0];
-                    tag.image_points[1] = m_ref_tag_vec[i].fitting_image_lines_0[idx1][1];
-                    tag.image_points[2] = m_ref_tag_vec[i].fitting_image_lines_0[idx1][2];
-                    tag.image_points[3] = m_ref_tag_vec[i].fitting_image_lines_0[idx1][3];
 
-                    tag.image_points[9] = m_ref_tag_vec[i].fitting_image_lines_0[idx0][3];
-                    tag.image_points[10] = m_ref_tag_vec[i].fitting_image_lines_0[idx0][2];
-                    tag.image_points[11] = m_ref_tag_vec[i].fitting_image_lines_0[idx0][1];
+                    tag.image_points[0] = ref_tag.fitting_image_lines_0[idx1][0];
+                    tag.image_points[1] = ref_tag.fitting_image_lines_0[idx1][1];
+                    tag.image_points[2] = ref_tag.fitting_image_lines_0[idx1][2];
+                    tag.image_points[3] = ref_tag.fitting_image_lines_0[idx1][3];
+                    tag.image_points[9] = ref_tag.fitting_image_lines_0[idx0][3];
+                    tag.image_points[10] = ref_tag.fitting_image_lines_0[idx0][2];
+                    tag.image_points[11] = ref_tag.fitting_image_lines_0[idx0][1];
 
                     ul_idx_lines_0[j].push_back(int(ul_tag_vec.size()));
                     ul_idx_lines_0[k].push_back(int(ul_tag_vec.size()));
@@ -819,29 +820,29 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             // -----------------------LOWER RIGHT ------------------------------------------------------
             // Check for a common lower right corner
             // cross_ratio = lowest
-            for(unsigned int j = 0; j < m_ref_tag_vec[i].fitting_image_lines_1.size(); j++)
+            for(unsigned int j = 0; j < ref_tag.fitting_image_lines_1.size(); j++)
             {
-                for(unsigned int k = j+1; k < m_ref_tag_vec[i].fitting_image_lines_1.size(); k++)
+                for(unsigned int k = j+1; k < ref_tag.fitting_image_lines_1.size(); k++)
                 {
                     bool corners_are_matching = false;
                     bool reorder_j = false;
                     bool reorder_k = false;
-                    if (m_ref_tag_vec[i].fitting_image_lines_1[j][0].center == m_ref_tag_vec[i].fitting_image_lines_1[k][0].center)
+                    if (ref_tag.fitting_image_lines_1[j][0].center == ref_tag.fitting_image_lines_1[k][0].center)
                     {
                         corners_are_matching = true;
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_1[j][3].center == m_ref_tag_vec[i].fitting_image_lines_1[k][0].center)
+                    else if (ref_tag.fitting_image_lines_1[j][3].center == ref_tag.fitting_image_lines_1[k][0].center)
                     {
                         corners_are_matching = true;
                         reorder_j = true;
 
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_1[j][0].center == m_ref_tag_vec[i].fitting_image_lines_1[k][3].center)
+                    else if (ref_tag.fitting_image_lines_1[j][0].center == ref_tag.fitting_image_lines_1[k][3].center)
                     {
                         corners_are_matching = true;
                         reorder_k = true;
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_1[j][3].center == m_ref_tag_vec[i].fitting_image_lines_1[k][3].center)
+                    else if (ref_tag.fitting_image_lines_1[j][3].center == ref_tag.fitting_image_lines_1[k][3].center)
                     {
                         corners_are_matching = true;
                         reorder_j = true;
@@ -856,27 +857,27 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     // Index 0 should corresponds to the common corner
                     if (reorder_j)
                     {
-                        cv::RotatedRect tmp = m_ref_tag_vec[i].fitting_image_lines_1[j][3];
-                        m_ref_tag_vec[i].fitting_image_lines_1[j][3] = m_ref_tag_vec[i].fitting_image_lines_1[j][0];
-                        m_ref_tag_vec[i].fitting_image_lines_1[j][0] = tmp;
-                        tmp = m_ref_tag_vec[i].fitting_image_lines_1[j][2];
-                        m_ref_tag_vec[i].fitting_image_lines_1[j][2] = m_ref_tag_vec[i].fitting_image_lines_1[j][1];
-                        m_ref_tag_vec[i].fitting_image_lines_1[j][1] = tmp;
+                        cv::RotatedRect tmp = ref_tag.fitting_image_lines_1[j][3];
+                        ref_tag.fitting_image_lines_1[j][3] = ref_tag.fitting_image_lines_1[j][0];
+                        ref_tag.fitting_image_lines_1[j][0] = tmp;
+                        tmp = ref_tag.fitting_image_lines_1[j][2];
+                        ref_tag.fitting_image_lines_1[j][2] = ref_tag.fitting_image_lines_1[j][1];
+                        ref_tag.fitting_image_lines_1[j][1] = tmp;
                     }
                     if (reorder_k)
                     {
-                        cv::RotatedRect tmp = m_ref_tag_vec[i].fitting_image_lines_1[k][3];
-                        m_ref_tag_vec[i].fitting_image_lines_1[k][3] = m_ref_tag_vec[i].fitting_image_lines_1[k][0];
-                        m_ref_tag_vec[i].fitting_image_lines_1[k][0] = tmp;
-                        tmp = m_ref_tag_vec[i].fitting_image_lines_1[k][2];
-                        m_ref_tag_vec[i].fitting_image_lines_1[k][2] = m_ref_tag_vec[i].fitting_image_lines_1[k][1];
-                        m_ref_tag_vec[i].fitting_image_lines_1[k][1] = tmp;
+                        cv::RotatedRect tmp = ref_tag.fitting_image_lines_1[k][3];
+                        ref_tag.fitting_image_lines_1[k][3] = ref_tag.fitting_image_lines_1[k][0];
+                        ref_tag.fitting_image_lines_1[k][0] = tmp;
+                        tmp = ref_tag.fitting_image_lines_1[k][2];
+                        ref_tag.fitting_image_lines_1[k][2] = ref_tag.fitting_image_lines_1[k][1];
+                        ref_tag.fitting_image_lines_1[k][1] = tmp;
                     }
 
                     // Compute angular ordering (clockwise)
-                    cv::Point2f tag_corner0 = m_ref_tag_vec[i].fitting_image_lines_1[j][3].center;
-                    cv::Point2f tag_corner1 = m_ref_tag_vec[i].fitting_image_lines_1[k][3].center;
-                    cv::Point2f tag_cornerUL = m_ref_tag_vec[i].fitting_image_lines_1[j][0].center;
+                    cv::Point2f tag_corner0 = ref_tag.fitting_image_lines_1[j][3].center;
+                    cv::Point2f tag_corner1 = ref_tag.fitting_image_lines_1[k][3].center;
+                    cv::Point2f tag_cornerUL = ref_tag.fitting_image_lines_1[j][0].center;
                     cv::Point2f tag_center = tag_corner1 + 0.5 * (tag_corner0 - tag_corner1);
 
                     cv::Point2f vec_center_cUL = tag_cornerUL - tag_center;
@@ -901,14 +902,14 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                     t_pi tag;
                     tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
-                    tag.image_points[6] = m_ref_tag_vec[i].fitting_image_lines_1[idx1][0];
-                    tag.image_points[7] = m_ref_tag_vec[i].fitting_image_lines_1[idx1][1];
-                    tag.image_points[8] = m_ref_tag_vec[i].fitting_image_lines_1[idx1][2];
-                    tag.image_points[9] = m_ref_tag_vec[i].fitting_image_lines_1[idx1][3];
+                    tag.image_points[6] = ref_tag.fitting_image_lines_1[idx1][0];
+                    tag.image_points[7] = ref_tag.fitting_image_lines_1[idx1][1];
+                    tag.image_points[8] = ref_tag.fitting_image_lines_1[idx1][2];
+                    tag.image_points[9] = ref_tag.fitting_image_lines_1[idx1][3];
 
-                    tag.image_points[3] = m_ref_tag_vec[i].fitting_image_lines_1[idx0][3];
-                    tag.image_points[4] = m_ref_tag_vec[i].fitting_image_lines_1[idx0][2];
-                    tag.image_points[5] = m_ref_tag_vec[i].fitting_image_lines_1[idx0][1];
+                    tag.image_points[3] = ref_tag.fitting_image_lines_1[idx0][3];
+                    tag.image_points[4] = ref_tag.fitting_image_lines_1[idx0][2];
+                    tag.image_points[5] = ref_tag.fitting_image_lines_1[idx0][1];
 
                     lr_idx_lines_1[j].push_back(int(lr_tag_vec.size()));
                     lr_idx_lines_1[k].push_back(int(lr_tag_vec.size()));
@@ -919,29 +920,29 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             // Check for a common lower left or upper right corner
             // Now, lines could already participate in matchings of ul and lr corners
             // cross_ratio = different
-            for(unsigned int j = 0; j < m_ref_tag_vec[i].fitting_image_lines_0.size(); j++)
+            for(unsigned int j = 0; j < ref_tag.fitting_image_lines_0.size(); j++)
             {
-                for(unsigned int k = 0; k < m_ref_tag_vec[i].fitting_image_lines_1.size(); k++)
+                for(unsigned int k = 0; k < ref_tag.fitting_image_lines_1.size(); k++)
                 {
                     bool corners_are_matching = false;
                     bool reorder_j = false;
                     bool reorder_k = false;
-                    if (m_ref_tag_vec[i].fitting_image_lines_0[j][0].center == m_ref_tag_vec[i].fitting_image_lines_1[k][0].center)
+                    if (ref_tag.fitting_image_lines_0[j][0].center == ref_tag.fitting_image_lines_1[k][0].center)
                     {
                         corners_are_matching = true;
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_0[j][3].center == m_ref_tag_vec[i].fitting_image_lines_1[k][0].center)
+                    else if (ref_tag.fitting_image_lines_0[j][3].center == ref_tag.fitting_image_lines_1[k][0].center)
                     {
                         corners_are_matching = true;
                         reorder_j = true;
 
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_0[j][0].center == m_ref_tag_vec[i].fitting_image_lines_1[k][3].center)
+                    else if (ref_tag.fitting_image_lines_0[j][0].center == ref_tag.fitting_image_lines_1[k][3].center)
                     {
                         corners_are_matching = true;
                         reorder_k = true;
                     }
-                    else if (m_ref_tag_vec[i].fitting_image_lines_0[j][3].center == m_ref_tag_vec[i].fitting_image_lines_1[k][3].center)
+                    else if (ref_tag.fitting_image_lines_0[j][3].center == ref_tag.fitting_image_lines_1[k][3].center)
                     {
                         corners_are_matching = true;
                         reorder_j = true;
@@ -956,27 +957,27 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     // Index 0 should corresponds to the common corner
                     if (reorder_j)
                     {
-                        cv::RotatedRect tmp = m_ref_tag_vec[i].fitting_image_lines_0[j][3];
-                        m_ref_tag_vec[i].fitting_image_lines_0[j][3] = m_ref_tag_vec[i].fitting_image_lines_0[j][0];
-                        m_ref_tag_vec[i].fitting_image_lines_0[j][0] = tmp;
-                        tmp = m_ref_tag_vec[i].fitting_image_lines_0[j][2];
-                        m_ref_tag_vec[i].fitting_image_lines_0[j][2] = m_ref_tag_vec[i].fitting_image_lines_0[j][1];
-                        m_ref_tag_vec[i].fitting_image_lines_0[j][1] = tmp;
+                        cv::RotatedRect tmp = ref_tag.fitting_image_lines_0[j][3];
+                        ref_tag.fitting_image_lines_0[j][3] = ref_tag.fitting_image_lines_0[j][0];
+                        ref_tag.fitting_image_lines_0[j][0] = tmp;
+                        tmp = ref_tag.fitting_image_lines_0[j][2];
+                        ref_tag.fitting_image_lines_0[j][2] = ref_tag.fitting_image_lines_0[j][1];
+                        ref_tag.fitting_image_lines_0[j][1] = tmp;
                     }
                     if (reorder_k)
                     {
-                        cv::RotatedRect tmp = m_ref_tag_vec[i].fitting_image_lines_1[k][3];
-                        m_ref_tag_vec[i].fitting_image_lines_1[k][3] = m_ref_tag_vec[i].fitting_image_lines_1[k][0];
-                        m_ref_tag_vec[i].fitting_image_lines_1[k][0] = tmp;
-                        tmp = m_ref_tag_vec[i].fitting_image_lines_1[k][2];
-                        m_ref_tag_vec[i].fitting_image_lines_1[k][2] = m_ref_tag_vec[i].fitting_image_lines_1[k][1];
-                        m_ref_tag_vec[i].fitting_image_lines_1[k][1] = tmp;
+                        cv::RotatedRect tmp = ref_tag.fitting_image_lines_1[k][3];
+                        ref_tag.fitting_image_lines_1[k][3] = ref_tag.fitting_image_lines_1[k][0];
+                        ref_tag.fitting_image_lines_1[k][0] = tmp;
+                        tmp = ref_tag.fitting_image_lines_1[k][2];
+                        ref_tag.fitting_image_lines_1[k][2] = ref_tag.fitting_image_lines_1[k][1];
+                        ref_tag.fitting_image_lines_1[k][1] = tmp;
                     }
 
                     // Compute angular ordering (clockwise)
-                    cv::Point2f tag_corner0 = m_ref_tag_vec[i].fitting_image_lines_0[j][3].center;
-                    cv::Point2f tag_corner1 = m_ref_tag_vec[i].fitting_image_lines_1[k][3].center;
-                    cv::Point2f tag_cornerUL = m_ref_tag_vec[i].fitting_image_lines_0[j][0].center;
+                    cv::Point2f tag_corner0 = ref_tag.fitting_image_lines_0[j][3].center;
+                    cv::Point2f tag_corner1 = ref_tag.fitting_image_lines_1[k][3].center;
+                    cv::Point2f tag_cornerUL = ref_tag.fitting_image_lines_0[j][0].center;
                     cv::Point2f tag_center = tag_corner1 + 0.5 * (tag_corner0 - tag_corner1);
 
                     cv::Point2f vec_center_cUL = tag_cornerUL - tag_center;
@@ -997,22 +998,22 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     {
                         // Lower left cornerfinal_tag_vec
                         tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
-                        tag.image_points[9] = m_ref_tag_vec[i].fitting_image_lines_0[j][0];
-                        tag.image_points[10] = m_ref_tag_vec[i].fitting_image_lines_0[j][1];
-                        tag.image_points[11] = m_ref_tag_vec[i].fitting_image_lines_0[j][2];
-                        tag.image_points[0] = m_ref_tag_vec[i].fitting_image_lines_0[j][3];
 
-                        tag.image_points[6] = m_ref_tag_vec[i].fitting_image_lines_1[k][3];
-                        tag.image_points[7] = m_ref_tag_vec[i].fitting_image_lines_1[k][2];
-                        tag.image_points[8] = m_ref_tag_vec[i].fitting_image_lines_1[k][1];
+                        tag.image_points[9] = ref_tag.fitting_image_lines_0[j][0];
+                        tag.image_points[10] = ref_tag.fitting_image_lines_0[j][1];
+                        tag.image_points[11] = ref_tag.fitting_image_lines_0[j][2];
+                        tag.image_points[0] = ref_tag.fitting_image_lines_0[j][3];
 
+                        tag.image_points[6] = ref_tag.fitting_image_lines_1[k][3];
+                        tag.image_points[7] = ref_tag.fitting_image_lines_1[k][2];
+                        tag.image_points[8] = ref_tag.fitting_image_lines_1[k][1];
 
                         // Check if lines participated already in a matching
                         if (ul_idx_lines_0[j].empty() && lr_idx_lines_1[k].empty())
                         {
                             if (TagUnique(final_tag_vec, tag))
                             {
-                                m_ref_tag_vec[i].sparse_copy_to(tag);
+                                ref_tag.sparse_copy_to(tag);
                                 tag.no_matching_lines = 2;
                                 final_tag_vec.push_back(tag);
                             }
@@ -1031,7 +1032,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                                 if (TagUnique(final_tag_vec, final_tag))
                                 {
-                                    m_ref_tag_vec[i].sparse_copy_to(final_tag);
+                                    ref_tag.sparse_copy_to(final_tag);
                                     final_tag.no_matching_lines = 3;
                                     final_tag_vec.push_back(final_tag);
                                 }
@@ -1051,7 +1052,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                                 if (TagUnique(final_tag_vec, final_tag))
                                 {
-                                    m_ref_tag_vec[i].sparse_copy_to(final_tag);
+                                    ref_tag.sparse_copy_to(final_tag);
                                     final_tag.no_matching_lines = 3;
                                     final_tag_vec.push_back(final_tag);
                                 }
@@ -1086,7 +1087,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                                     if (AnglesValid2D(final_tag.image_points))
                                     {
-                                        m_ref_tag_vec[i].sparse_copy_to(final_tag);
+                                        ref_tag.sparse_copy_to(final_tag);
                                         final_tag.no_matching_lines = 4;
                                         final_tag_vec.push_back(final_tag);
                                     }
@@ -1098,21 +1099,21 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     {
                         // Upper right corner
                         tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
-                        tag.image_points[0] = m_ref_tag_vec[i].fitting_image_lines_0[j][3];
-                        tag.image_points[1] = m_ref_tag_vec[i].fitting_image_lines_0[j][2];
-                        tag.image_points[2] = m_ref_tag_vec[i].fitting_image_lines_0[j][1];
-                        tag.image_points[3] = m_ref_tag_vec[i].fitting_image_lines_0[j][0];
 
-                        tag.image_points[4] = m_ref_tag_vec[i].fitting_image_lines_1[k][1];
-                        tag.image_points[5] = m_ref_tag_vec[i].fitting_image_lines_1[k][2];
-                        tag.image_points[6] = m_ref_tag_vec[i].fitting_image_lines_1[k][3];
+                        tag.image_points[0] = ref_tag.fitting_image_lines_0[j][3];
+                        tag.image_points[1] = ref_tag.fitting_image_lines_0[j][2];
+                        tag.image_points[2] = ref_tag.fitting_image_lines_0[j][1];
+                        tag.image_points[3] = ref_tag.fitting_image_lines_0[j][0];
 
+                        tag.image_points[4] = ref_tag.fitting_image_lines_1[k][1];
+                        tag.image_points[5] = ref_tag.fitting_image_lines_1[k][2];
+                        tag.image_points[6] = ref_tag.fitting_image_lines_1[k][3];
                         // Check if lines participated already in a matching
                         if (ul_idx_lines_0[j].empty() && lr_idx_lines_1[k].empty())
                         {
                             if (TagUnique(final_tag_vec, tag))
                             {
-                                m_ref_tag_vec[i].sparse_copy_to(tag);
+                                ref_tag.sparse_copy_to(tag);
                                 tag.no_matching_lines = 2;
                                 final_tag_vec.push_back(tag);
                             }
@@ -1131,7 +1132,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                                 if (TagUnique(final_tag_vec, final_tag))
                                 {
-                                    m_ref_tag_vec[i].sparse_copy_to(final_tag);
+                                    ref_tag.sparse_copy_to(final_tag);
                                     final_tag.no_matching_lines = 3;
                                     final_tag_vec.push_back(final_tag);
                                 }
@@ -1151,7 +1152,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                                 if (TagUnique(final_tag_vec, final_tag))
                                 {
-                                    m_ref_tag_vec[i].sparse_copy_to(final_tag);
+                                    ref_tag.sparse_copy_to(final_tag);
                                     final_tag.no_matching_lines = 3;
                                     final_tag_vec.push_back(final_tag);
                                 }
@@ -1186,7 +1187,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
 
                                     if (AnglesValid2D(final_tag.image_points))
                                     {
-                                        m_ref_tag_vec[i].sparse_copy_to(final_tag);
+                                        ref_tag.sparse_copy_to(final_tag);
                                         final_tag.no_matching_lines = 4;
                                         final_tag_vec.push_back(final_tag);
                                     }
@@ -1226,25 +1227,24 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
         cv::Sobel(input_image_smooth, gradient_y, CV_16S, 0, 1, sobel_winsize);
         
         cv::Mat refine_image = input_image_smooth.clone();
-        for (unsigned int i=0; i<final_tag_vec.size(); i++)
+        for (auto & tag : final_tag_vec)
         {
-            if (final_tag_vec[i].no_matching_lines < m_min_matching_lines)
+            if (tag.no_matching_lines < m_min_matching_lines)
                 continue;
             
-            for (unsigned int j=0; j<final_tag_vec[i].image_points.size(); j++)
+            for (auto & image_point : tag.image_points)
             {
                 cv::Matx33d refined_ellipse;
                 
-                if (cv::runetag::ipa_Fiducials::ellipserefine(final_tag_vec[i].image_points[j], gradient_x, gradient_y, refined_ellipse))
+                if (cv::runetag::ipa_Fiducials::ellipserefine(image_point, gradient_x, gradient_y, refined_ellipse))
                 {                
                     cv::Point2d ellipse_center = cv::runetag::ipa_Fiducials::ellipseCenter(refined_ellipse);
                     
-                    cv::circle( refine_image, final_tag_vec[i].image_points[j].center, 1, CV_RGB(0,255,0) );
-                    cv::circle( refine_image, ellipse_center, 1, CV_RGB(0,0,255) );
-                    
-                    
-                    final_tag_vec[i].image_points[j].center.x = ellipse_center.x;
-                    final_tag_vec[i].image_points[j].center.y = ellipse_center.y;
+                    cv::circle(refine_image, image_point.center, 1, CV_RGB(0, 255, 0) );
+                    cv::circle(refine_image, ellipse_center, 1, CV_RGB(0, 0, 255));
+
+                    image_point.center.x = ellipse_center.x;
+                    image_point.center.y = ellipse_center.y;
                 }
                 else
                 {
@@ -1263,21 +1263,21 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             cv::Mat tag_image = image.clone();
             cv::Vec3b rgbValVec[] = {cv::Vec3b(0,0,0), cv::Vec3b(255,255,255),
                     cv::Vec3b(255,0,0), cv::Vec3b(0,255,255), cv::Vec3b(0,255,0)};
-            for (unsigned int i=0; i<final_tag_vec.size(); i++)
+            for (auto & tag : final_tag_vec)
             {
-                if (final_tag_vec[i].no_matching_lines != 4)
+                if (tag.no_matching_lines != 4)
                     continue;
 
                 bool connect_points = false;
-                for (unsigned int j=0; j<final_tag_vec[i].image_points.size(); j++)
+                for (unsigned int j=0; j < tag.image_points.size(); j++)
                 {
-                    cv::Vec3b rgbVal = rgbValVec[final_tag_vec[i].no_matching_lines];
-                    if (final_tag_vec[i].image_points[j].center.x != 0)
+                    cv::Vec3b rgbVal = rgbValVec[tag.no_matching_lines];
+                    if (tag.image_points[j].center.x != 0)
                     {
-                        cv::circle(tag_image, final_tag_vec[i].image_points[j].center, 3, cv::Scalar(0,255,0), -1, CV_AA);
+                        cv::circle(tag_image, tag.image_points[j].center, 3, cv::Scalar(0, 255, 0), -1, CV_AA);
                         if (connect_points)
                         {
-                            cv::line(tag_image, final_tag_vec[i].image_points[j-1].center, final_tag_vec[i].image_points[j].center, cv::Scalar(rgbVal[0], rgbVal[1], rgbVal[2]), 1, CV_AA);
+                            cv::line(tag_image, tag.image_points[j - 1].center, tag.image_points[j].center, cv::Scalar(rgbVal[0], rgbVal[1], rgbVal[2]), 1, CV_AA);
                         }
                         connect_points = true;
                     }
@@ -1288,22 +1288,20 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
             cv::imshow("60 Tags", tag_image);
         }
 
-        for (unsigned int i=0; i<final_tag_vec.size(); i++)
+        for (auto & tag : final_tag_vec)
         {
-            if (final_tag_vec[i].no_matching_lines < m_min_matching_lines)
+            if (tag.no_matching_lines < m_min_matching_lines)
                 continue;
             
             t_points tag_points;
-            tag_points.id = final_tag_vec[i].parameters.m_id;
+            tag_points.id = tag.parameters.m_id;
             tag_points.marker_points = std::vector<cv::Point2f>();
             tag_points.image_points = std::vector<cv::Point2f>();
             
-            for (unsigned int j=0; j<final_tag_vec[i].image_points.size(); j++)
-            {
-                
-                tag_points.marker_points.push_back(final_tag_vec[i].marker_points[j]);
-                tag_points.image_points.push_back(final_tag_vec[i].image_points[j].center);
-            }
+            for (const auto & marker_point : tag.marker_points)
+                tag_points.marker_points.push_back(marker_point);
+            for (const auto & image_point : tag.image_points)
+                tag_points.image_points.push_back(image_point.center);
 
             vec_points.push_back(tag_points);
         }
@@ -1329,38 +1327,38 @@ unsigned long FiducialModelPi::GetPose(cv::Mat& image, std::vector<t_pose>& vec_
     
     // ------------ Compute pose --------------------------------------
     
-    for (unsigned int i=0; i<vec_points.size(); i++)
+    for (const auto & vec_point : vec_points)
     {
         int nPoints = 0;
-        for (unsigned int j=0; j<vec_points[i].image_points.size(); j++)
-            if (vec_points[i].image_points[j].x != 0)
+        for (const auto & image_point : vec_point.image_points)
+            if (image_point.x != 0)
                 nPoints++;
 
         cv::Mat pattern_coords(nPoints, 3, CV_32F);
         cv::Mat image_coords(nPoints, 2, CV_32F);
 
-        float* p_pattern_coords = 0;
-        float* p_image_coords = 0;
+        float* p_pattern_coords = nullptr;
+        float* p_image_coords = nullptr;
         int idx = 0;
-        for (unsigned int j=0; j<vec_points[i].image_points.size(); j++)
+        for (unsigned int j=0; j<vec_point.image_points.size(); j++)
         {
-            if (vec_points[i].image_points[j].x != 0)
+            if (vec_point.image_points[j].x != 0)
             {
                 p_pattern_coords = pattern_coords.ptr<float>(idx);
-                p_pattern_coords[0] = vec_points[i].marker_points[j].x;
-                p_pattern_coords[1] = vec_points[i].marker_points[j].y;
+                p_pattern_coords[0] = vec_point.marker_points[j].x;
+                p_pattern_coords[1] = vec_point.marker_points[j].y;
                 p_pattern_coords[2] = 0;
 
                 p_image_coords = image_coords.ptr<float>(idx);
-                p_image_coords[0] = vec_points[i].image_points[j].x;
-                p_image_coords[1] = vec_points[i].image_points[j].y;
+                p_image_coords[0] = vec_point.image_points[j].x;
+                p_image_coords[1] = vec_point.image_points[j].y;
 
                 idx++;
             }
         }
 
         t_pose tag_pose;
-        tag_pose.id = vec_points[i].id;
+        tag_pose.id = vec_point.id;
         cv::solvePnP(pattern_coords, image_coords, GetCameraMatrix(), GetDistortionCoeffs(), tag_pose.rot, tag_pose.trans);
 
         // Apply transformation
@@ -1459,11 +1457,11 @@ bool FiducialModelPi::ProjectionValid(cv::Mat& rot_CfromO, cv::Mat& trans_CfromO
     double max_avg_pixel_error = 5 * m_image_size_factor;   // express relative to a 640x480 pixels camera image;
 
     // Check angles
-    float* p_pts_in_O = 0;
-    double* p_pt_in_O = 0;
-    double* p_pt_4x1_in_C = 0;
-    double* p_pt_3x1_in_C = 0;
-    double* p_pt_3x1_2D = 0;
+    float* p_pts_in_O = nullptr;
+    double* p_pt_in_O = nullptr;
+    double* p_pt_4x1_in_C = nullptr;
+    double* p_pt_3x1_in_C = nullptr;
+    double* p_pt_3x1_2D = nullptr;
     float* p_image_coords;
 
     cv::Mat pt_in_O(4, 1, CV_64FC1);
@@ -1521,12 +1519,12 @@ bool FiducialModelPi::TagUnique(std::vector<t_pi>& tag_vec, t_pi& newTag)
 {
     // Insert if not already existing
     bool duplicate = true;        
-    for (unsigned int i=0; i<tag_vec.size(); i++)
+    for (auto & tag : tag_vec)
     {
         duplicate = true;
         for (int j=0; j<12; j++)
         {
-            if (tag_vec[i].image_points[j].center !=
+            if (tag.image_points[j].center !=
                 newTag.image_points[j].center)
             {
                 duplicate = false;
@@ -1539,51 +1537,51 @@ bool FiducialModelPi::TagUnique(std::vector<t_pi>& tag_vec, t_pi& newTag)
     return true;
 }
 
-unsigned long FiducialModelPi::LoadParameters(std::vector<FiducialPiParameters> pi_tags)
+unsigned long FiducialModelPi::LoadParameters(const std::vector<FiducialPiParameters> &pi_tags)
 {
         m_ref_tag_vec.clear();
-        for(unsigned int i=0; i<pi_tags.size(); i++)
+        for(auto & pi_tag : pi_tags)
         {
                 t_pi ref_tag;
-                double tag_width = pi_tags[i].tag_width;
-                double tag_height = pi_tags[i].tag_height;
+                double tag_width = pi_tag.tag_width;
+                double tag_height = pi_tag.tag_height;
 
-                ref_tag.parameters = pi_tags[i];
+                ref_tag.parameters = pi_tag;
 
-                double d_line0_AB = pi_tags[i].d_line0_AB; //AB
-                double d_line0_BD = 1.f - pi_tags[i].d_line0_AB; //BD
-                double d_line0_AC = pi_tags[i].d_line0_AC;//AC
-                double d_line0_CD = 1.f - pi_tags[i].d_line0_AC;//CD
+                double d_line0_AB = pi_tag.d_line0_AB; //AB
+                double d_line0_BD = 1.f - pi_tag.d_line0_AB; //BD
+                double d_line0_AC = pi_tag.d_line0_AC;//AC
+                double d_line0_CD = 1.f - pi_tag.d_line0_AC;//CD
                 ref_tag.cross_ration_0 = (d_line0_AB/d_line0_BD)/(d_line0_AC/d_line0_CD);
 
-                double d_line1_AB = pi_tags[i].d_line1_AB;
-                double d_line1_BD = 1.f - pi_tags[i].d_line1_AB;
-                double d_line1_AC = pi_tags[i].d_line1_AC;
-                double d_line1_CD = 1.f - pi_tags[i].d_line1_AC;
+                double d_line1_AB = pi_tag.d_line1_AB;
+                double d_line1_BD = 1.f - pi_tag.d_line1_AB;
+                double d_line1_AC = pi_tag.d_line1_AC;
+                double d_line1_CD = 1.f - pi_tag.d_line1_AC;
                 ref_tag.cross_ration_1 = (d_line1_AB/d_line1_BD)/(d_line1_AC/d_line1_CD);
         
                 // Marker coordinates
-                ref_tag.marker_points.push_back(cv::Point2f(0, 0));
-                ref_tag.marker_points.push_back(cv::Point2f(float(d_line0_AB)*tag_width, 0));
-                ref_tag.marker_points.push_back(cv::Point2f(float(d_line0_AC)*tag_width, 0));
+                ref_tag.marker_points.emplace_back(0, 0);
+                ref_tag.marker_points.emplace_back(float(d_line0_AB)*tag_width, 0);
+                ref_tag.marker_points.emplace_back(float(d_line0_AC)*tag_width, 0);
 
-                ref_tag.marker_points.push_back(cv::Point2f(float(tag_width), 0));
-                ref_tag.marker_points.push_back(cv::Point2f(float(tag_width), float(d_line1_AB)*tag_height));
-                ref_tag.marker_points.push_back(cv::Point2f(float(tag_width), float(d_line1_AC)*tag_height));
+                ref_tag.marker_points.emplace_back(float(tag_width), 0);
+                ref_tag.marker_points.emplace_back(float(tag_width), float(d_line1_AB)*tag_height);
+                ref_tag.marker_points.emplace_back(float(tag_width), float(d_line1_AC)*tag_height);
 
-                ref_tag.marker_points.push_back(cv::Point2f(float(tag_width), float(tag_height)));
-                ref_tag.marker_points.push_back(cv::Point2f(float(d_line1_AC)*tag_width, float(tag_height)));
-                ref_tag.marker_points.push_back(cv::Point2f(float(d_line1_AB)*tag_width, float(tag_height)));
+                ref_tag.marker_points.emplace_back(float(tag_width), float(tag_height));
+                ref_tag.marker_points.emplace_back(float(d_line1_AC)*tag_width, float(tag_height));
+                ref_tag.marker_points.emplace_back(float(d_line1_AB)*tag_width, float(tag_height));
 
-                ref_tag.marker_points.push_back(cv::Point2f(0, float(tag_height)));
-                ref_tag.marker_points.push_back(cv::Point2f(0, float(d_line0_AC)*tag_height));
-                ref_tag.marker_points.push_back(cv::Point2f(0, float(d_line0_AB)*tag_height));
+                ref_tag.marker_points.emplace_back(0, float(tag_height));
+                ref_tag.marker_points.emplace_back(0, float(d_line0_AC)*tag_height);
+                ref_tag.marker_points.emplace_back(0, float(d_line0_AB)*tag_height);
 
                 // Offset
-                for(unsigned int j=0; j<ref_tag.marker_points.size(); j++)
+                for(auto & marker_point : ref_tag.marker_points)
                 {
-                        ref_tag.marker_points[j].x += pi_tags[i].m_offset.x;
-                        ref_tag.marker_points[j].y += pi_tags[i].m_offset.y;
+                        marker_point.x += pi_tag.m_offset.x;
+                        marker_point.y += pi_tag.m_offset.y;
                 }
 
                 double delta = ref_tag.cross_ration_0/ref_tag.cross_ration_1;

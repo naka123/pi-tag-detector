@@ -58,7 +58,7 @@ public:
 	/// Load fiducial-centric coordinates of markers from file
 	/// @param directory Directory, where the parameters of all fiducials are stores
 	unsigned long LoadParameters(std::string directory_and_filename);
-	unsigned long LoadParameters(std::vector<FiducialPiParameters> pi_tags);
+	unsigned long LoadParameters(const std::vector<FiducialPiParameters> &pi_tags);
 
 	std::string GetType()
 	{
