@@ -41,7 +41,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
     }
     else
     {
-        src_mat_8U1 = image;
+        src_mat_8U1 = image.clone();
     }
 
     if (m_debug)
@@ -811,6 +811,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     tag.image_points[1] = ref_tag.fitting_image_lines_0[idx1][1];
                     tag.image_points[2] = ref_tag.fitting_image_lines_0[idx1][2];
                     tag.image_points[3] = ref_tag.fitting_image_lines_0[idx1][3];
+
                     tag.image_points[9] = ref_tag.fitting_image_lines_0[idx0][3];
                     tag.image_points[10] = ref_tag.fitting_image_lines_0[idx0][2];
                     tag.image_points[11] = ref_tag.fitting_image_lines_0[idx0][1];
@@ -906,6 +907,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                     t_pi tag;
                     tag.image_points = std::vector<cv::RotatedRect>(12, cv::RotatedRect());
                     for (auto &im_point: tag.image_points) im_point.center = {NaN, NaN};
+
                     tag.image_points[6] = ref_tag.fitting_image_lines_1[idx1][0];
                     tag.image_points[7] = ref_tag.fitting_image_lines_1[idx1][1];
                     tag.image_points[8] = ref_tag.fitting_image_lines_1[idx1][2];
@@ -1115,6 +1117,7 @@ unsigned long FiducialModelPi::GetPoints(cv::Mat& image, std::vector<t_points>& 
                         tag.image_points[4] = ref_tag.fitting_image_lines_1[k][1];
                         tag.image_points[5] = ref_tag.fitting_image_lines_1[k][2];
                         tag.image_points[6] = ref_tag.fitting_image_lines_1[k][3];
+
                         // Check if lines participated already in a matching
                         if (ul_idx_lines_0[j].empty() && lr_idx_lines_1[k].empty())
                         {
@@ -1331,7 +1334,11 @@ unsigned long FiducialModelPi::GetPose(cv::Mat& image, std::vector<t_pose>& vec_
     std::vector<t_points> vec_points;
     if (GetPoints(image, vec_points) != RET_OK)
         return RET_FAILED;
-    
+
+    return GetPoseFromPoints(vec_points, vec_pose);
+}
+
+unsigned long FiducialModelPi::GetPoseFromPoints(const std::vector<t_points> &vec_points, std::vector<t_pose> &vec_pose) {
     // ------------ Compute pose --------------------------------------
     
     for (const auto & vec_point : vec_points)
@@ -1366,18 +1373,23 @@ unsigned long FiducialModelPi::GetPose(cv::Mat& image, std::vector<t_pose>& vec_
 
         t_pose tag_pose;
         tag_pose.id = vec_point.id;
-        cv::solvePnP(pattern_coords, image_coords, GetCameraMatrix(), GetDistortionCoeffs(), tag_pose.rot, tag_pose.trans);
+        cv::solvePnP(pattern_coords, image_coords, GetCameraMatrix(), GetDistortionCoeffs(),
+                     tag_pose.rot, tag_pose.trans);
+//                     false, cv::SOLVEPNP_IPPE
+//                     );
 
-        // Apply transformation
-        cv::Mat rot_3x3_CfromO;
-        cv::Rodrigues(tag_pose.rot, rot_3x3_CfromO);
-
-        cv::Mat reprojection_matrix = GetCameraMatrix();
-        if (!ProjectionValid(rot_3x3_CfromO, tag_pose.trans, reprojection_matrix, pattern_coords, image_coords))
-            continue;
-
-        ApplyExtrinsics(rot_3x3_CfromO, tag_pose.trans);
-        rot_3x3_CfromO.copyTo(tag_pose.rot);
+//        // Apply transformation
+//        cv::Mat rot_3x3_CfromO;
+//        cv::Rodrigues(tag_pose.rot, rot_3x3_CfromO);
+//
+//        cv::Mat reprojection_matrix = GetCameraMatrix();
+//        if (!ProjectionValid(rot_3x3_CfromO, tag_pose.trans, reprojection_matrix, pattern_coords, image_coords))
+//            continue;
+//
+//        std::cout << "reproj ok" << std::endl;
+//
+//        ApplyExtrinsics(rot_3x3_CfromO, tag_pose.trans);
+//        rot_3x3_CfromO.copyTo(tag_pose.rot);
         vec_pose.push_back(tag_pose);
     }
     

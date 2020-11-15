@@ -76,7 +76,7 @@ public:
 	unsigned long SetCameraMatrix(cv::Mat camera_matrix);
 
 	// Gets the distortion coeffs
-	// @return 1x4 distortion coeffs matrix (k1,k2,p1,p2)
+	// @return distortion coeffs matrix
 	cv::Mat GetDistortionCoeffs();
 
 	// Sets the distortion coeffs

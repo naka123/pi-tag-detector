@@ -54,6 +54,7 @@ public:
 	/// @return <code>RET_FAILED</code> if no tag could be detected
 	/// <code>RET_OK</code> on success
 	unsigned long GetPose(cv::Mat& image, std::vector<t_pose>& vec_pose);
+    unsigned long GetPoseFromPoints(const std::vector<t_points>& vec_points, std::vector<t_pose>& vec_pose);
 
 	/// Load fiducial-centric coordinates of markers from file
 	/// @param directory Directory, where the parameters of all fiducials are stores
